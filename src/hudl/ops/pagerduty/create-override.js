@@ -22,6 +22,7 @@ async function main() {
 
   if (!schedule || !startDate || !user) {
     console.error('Invalid input, need to provide at least schedule, startDate and user');
+    return;
   }
 
   if (!cookie) {
@@ -42,8 +43,6 @@ async function main() {
 
   const decodedCookie = Buffer.from(cookie, 'base64').toString('ascii');
 
-  console.log('Request:', JSON.stringify(data));
-
   try {
     const response = await fetch(url, {
       method: 'POST',
@@ -63,8 +62,8 @@ async function main() {
       },
     });
 
-    const json = await response.json();
-    console.log('Override created:', json);
+    const { override } = await response.json();
+    console.log('Override created:', override);
   } catch (error) {
     console.log(error);
   }
@@ -85,18 +84,25 @@ function help() {
   console.log('Arguments:', [
     'schedule',
     'user',
-    'cookie (base64 encoded e.g. `Buffer.from("<cookie>").toString("base64")` in Node or `btoa("<cookie>")` in JavaScript Console)',
+    'cookie (base64 encoded e.g. `Buffer.from("<cookie>").toString("base64")` in Node or `btoa(document.cookie)` in JavaScript Console)',
     'startDate',
     'startTime (optional, defaults to 09:30, relative to your user timezone preference)',
     'endDate (optional, defaults to $startDate)',
     'endTime (optional, defaults to 17:30, relative to your user timezone preference)',
   ]);
 
-  console.log({
+  console.log('Schedules:', {
     'Connect High Urgency': 'PN59INH',
     'Connect Low Urgency': 'P77U0AW',
     'First Tier': 'PZY553V',
   });
+
+  console.log('Steps to use:', [
+    'Open browser Dev Tools',
+    'Manually create the first override',
+    'Open POST request; check request headers; copy Cookie value',
+    'Convert Cookie value to Base64; pass in via --cookie'
+  ]);
 }
 
 main();
