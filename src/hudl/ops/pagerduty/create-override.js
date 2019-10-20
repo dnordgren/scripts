@@ -14,10 +14,10 @@ async function main() {
     schedule,
     startDate,
     startTime,
-    endDate,
     endTime,
     user,
     cookie,
+    fullWeek,
   } = argv;
 
   if (!schedule || !startDate || !user) {
@@ -29,44 +29,63 @@ async function main() {
     console.warn('You probably want to provide cookie. Use `document.cookie` from PD > JavaScript Console to get logged-in value');
   }
 
-  const url = `https://hudl.pagerduty.com/api/v1/schedules/${schedule}/overrides`;
-  const data = {
-    override: {
-      start: `${startDate}T${startTime || '09:30:00'}.000Z`,
-      end: `${endDate || startDate}T${endTime || '17:30:00'}.000Z`,
-      user: {
-        id: user,
-        type: 'user',
-      },
-    },
-  };
+  const dates = [ startDate ];
 
+  if (fullWeek) {
+    const monday = new Date(startDate);
+
+    // Ensure we set up the overrides M-F.
+    if (monday.getDay() !== 1) {
+      console.warn('You selected to schedule for the full week via --fullWeek, but the provided date isn\'t a Monday');
+      return;
+    }
+
+    let theNextDay = monday;
+    for (let i = 0; i < 4; i++) {
+      // Increment day by one, M-F.
+      theNextDay.setDate(theNextDay.getDate() + 1);
+      // Add date to array in YYYY-MM-DD format.
+      dates.push(`${theNextDay.getFullYear()}-${theNextDay.toLocaleDateString("en-US", { month: "2-digit" })}-${theNextDay.toLocaleDateString("en-US", { day: "2-digit" })}`);
+    }
+  }
+
+  const requestDataPerDay = dates.map(date => ({
+    override: {
+      start: `${date}T${startTime || '09:30:00'}.000Z`,
+      end: `${date}T${endTime || '17:30:00'}.000Z`,
+      user: { id: user, type: 'user' },
+    },
+  }));
+
+  const url = `https://hudl.pagerduty.com/api/v1/schedules/${schedule}/overrides`;
   const decodedCookie = Buffer.from(cookie, 'base64').toString('ascii');
 
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      mode: 'cors',
-      credentials: 'include',
-      referrer: 'https://hudl.pagerduty.com/schedules',
-      body: JSON.stringify(data),
-      headers: {
-        'Accept': 'application/vnd.pagerduty+json;version=2',
-        'Cache-Control': 'no-cache',
-        'Content-Type': 'application/json',
-        'Cookie': decodedCookie,
-        'DNT': 1,
-        'Pragma': 'no-cache',
-        'X-PagerDuty-Api-Local': '1',
-        'X-Requested-With': 'XMLHttpRequest',
-      },
-    });
+  dates.forEach(async (date, index) => {
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        mode: 'cors',
+        credentials: 'include',
+        referrer: 'https://hudl.pagerduty.com/schedules',
+        body: JSON.stringify(requestDataPerDay[index]),
+        headers: {
+          'Accept': 'application/vnd.pagerduty+json;version=2',
+          'Cache-Control': 'no-cache',
+          'Content-Type': 'application/json',
+          'Cookie': decodedCookie,
+          'DNT': 1,
+          'Pragma': 'no-cache',
+          'X-PagerDuty-Api-Local': '1',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+      });
 
-    const { override } = await response.json();
-    console.log('Override created:', override);
-  } catch (error) {
-    console.log(error);
-  }
+      const { override } = await response.json();
+      console.log('Override created:', override);
+    } catch (error) {
+      console.error(`Failed to create override for date ${date}`, error);
+    }
+  });
 }
 
 function help() {
@@ -87,8 +106,8 @@ function help() {
     'cookie (base64 encoded e.g. `Buffer.from("<cookie>").toString("base64")` in Node or `btoa(document.cookie)` in JavaScript Console)',
     'startDate',
     'startTime (optional, defaults to 09:30, relative to your user timezone preference)',
-    'endDate (optional, defaults to $startDate)',
     'endTime (optional, defaults to 17:30, relative to your user timezone preference)',
+    'fullWeek (optional, defaults to false, schedules M-F)',
   ]);
 
   console.log('Schedules:', {
@@ -101,7 +120,7 @@ function help() {
     'Open browser Dev Tools',
     'Manually create the first override',
     'Open POST request; check request headers; copy Cookie value',
-    'Convert Cookie value to Base64; pass in via --cookie'
+    'Convert Cookie value to Base64; pass in via --cookie',
   ]);
 }
 
