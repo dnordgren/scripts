@@ -13,3 +13,4 @@ Run `--helpMe`; it'll print helpful stuff.
 
 ## Ideas
 [x] Make it schedule entire week for user via 5 requests.
+[ ] Hard-code map of Engineer:PagerDuty ID so --user can be argument like 'Derek'
