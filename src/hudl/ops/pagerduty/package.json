@@ -1,0 +1,10 @@
+{
+  "name": "pagerduty",
+  "version": "1.0.0",
+  "main": "create-override.js",
+  "license": "MIT",
+  "dependencies": {
+    "node-fetch": "^2.6.0",
+    "yargs": "^14.2.0"
+  }
+}
