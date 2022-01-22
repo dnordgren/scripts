@@ -4,7 +4,7 @@
   "main": "create-override.js",
   "license": "MIT",
   "dependencies": {
-    "node-fetch": "^2.6.1",
+    "node-fetch": "^3.1.1",
     "yargs": "^14.2.0"
   }
 }
